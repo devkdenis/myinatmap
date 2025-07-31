@@ -5,101 +5,97 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Main map component that handles the MapLibre instance and tile switching
 const MapComponent = (): ReactElement => {
-  // Ref to hold the HTML element where the map will be rendered
   const mapContainer = useRef<HTMLDivElement>(null);
-  // Ref to store the MapLibre instance (persists between renders)
   const map = useRef<MapLibre | null>(null);
-  // State to track which tile set is currently displayed
   const [isSatellite, setIsSatellite] = useState(false);
+
+  // Define tile configurations
+  const tileConfigs = {
+    street: {
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      ],
+      attribution: '© OpenStreetMap contributors'
+    },
+    satellite: {
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+    }
+  };
 
   // Initialize map when component mounts
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    // Create new MapLibre instance
+    const streetConfig = tileConfigs.street;
+
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: {
         version: 8,
         sources: {
-          // Define the OpenStreetMap tile source
           'osm': {
             type: 'raster',
-            // Use multiple subdomains (a,b,c) for better performance
-            tiles: [
-              'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
-            ],
+            tiles: streetConfig.tiles,
             tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
+            attribution: streetConfig.attribution
           }
         },
-        // Define how the tiles should be rendered
         layers: [{
           id: 'osm',
           type: 'raster',
           source: 'osm',
           minzoom: 0,
-          maxzoom: 19  // Increase to 16 to cover the 15.99 range
+          maxzoom: 19
         }]
       },
-      // Initial map position
       center: [0, 0],
       zoom: 2,
       minZoom: 2,
-      maxZoom: 18    // Reduce to exactly 15
+      maxZoom: 18
     });
 
-    // Add zoom level listener
-    map.current.on('zoom', () => {
-      if (map.current) {
-        const zoomLevel = map.current.getZoom();
-        console.log('Current zoom level:', Math.round(zoomLevel * 100) / 100);
-      }
-    });
-
-    // Add zoom and rotation controls
+    // Add controls
     map.current.addControl(new NavigationControl(), 'top-right');
-    
-    // Add geolocation control for finding user's position
     map.current.addControl(new GeolocateControl({
-      positionOptions: {
-        enableHighAccuracy: true
-      },
+      positionOptions: { enableHighAccuracy: true },
       trackUserLocation: true
     }), 'top-right');
+    map.current.addControl(new maplibregl.ScaleControl({
+      maxWidth: 100,
+      unit: 'metric'
+    }), 'bottom-left');
 
-    // Cleanup function to remove map when component unmounts
-    return () => {
-      map.current?.remove();
-    };
-  }, []); // Empty dependency array means this runs once on mount
+    return () => map.current?.remove();
+  }, []);
 
   // Handler for switching between satellite and street map tiles
   const toggleMapStyle = () => {
     if (!map.current) return;
 
-    // Get the current tile source
-    const currentSource = map.current.getSource('osm') as maplibregl.RasterTileSource;
-    if (currentSource) {
-      // Define tile URLs based on current state
-      const tiles = isSatellite 
-        ? [
-            // OpenStreetMap tiles (street view)
-            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          ]
-        : [
-            // ESRI satellite imagery tiles
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          ];
-      
-      // Update the tile source without recreating the map
-      currentSource.setTiles(tiles);
-      setIsSatellite(!isSatellite);
-    }
+    const config = isSatellite ? tileConfigs.street : tileConfigs.satellite;
+    
+    // Remove existing layer and source
+    if (map.current.getLayer('osm')) map.current.removeLayer('osm');
+    if (map.current.getSource('osm')) map.current.removeSource('osm');
+    
+    // Add new source and layer
+    map.current.addSource('osm', {
+      type: 'raster',
+      tiles: config.tiles,
+      tileSize: 256,
+      attribution: config.attribution
+    });
+    
+    map.current.addLayer({
+      id: 'osm',
+      type: 'raster',
+      source: 'osm'
+    });
+    
+    setIsSatellite(!isSatellite);
   };
 
   return (
@@ -115,7 +111,7 @@ const MapComponent = (): ReactElement => {
           rounded 
           shadow-sm
           cursor-pointer
-           border-gray-300
+          border border-gray-300
           hover:bg-gray-100 
           transition-colors
           z-10
@@ -124,7 +120,7 @@ const MapComponent = (): ReactElement => {
         "
         aria-label={isSatellite ? 'Switch to Streets' : 'Switch to Satellite'}
       >
-        {isSatellite ? '🏔️' : '🗺️'}
+        {isSatellite ? '🛣️' : '🗺️'}
       </button>
     </>
   );
