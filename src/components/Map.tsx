@@ -41,21 +41,21 @@ const MapComponent = (): ReactElement => {
           type: 'raster',
           source: 'osm',
           minzoom: 0,
-          maxzoom: 19
+          maxzoom: 19  // Increase to 16 to cover the 15.99 range
         }]
       },
       // Initial map position
       center: [0, 0],
       zoom: 2,
-      minZoom: 2,    // Prevents zooming out beyond world view
-      maxZoom: 18.99    // Limits maximum zoom level
+      minZoom: 2,
+      maxZoom: 18    // Reduce to exactly 15
     });
 
     // Add zoom level listener
     map.current.on('zoom', () => {
       if (map.current) {
-        //const zoomLevel = map.current.getZoom();
-        //console.log('Current zoom level:', Math.round(zoomLevel * 100) / 100);
+        const zoomLevel = map.current.getZoom();
+        console.log('Current zoom level:', Math.round(zoomLevel * 100) / 100);
       }
     });
 
