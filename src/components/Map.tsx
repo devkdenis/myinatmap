@@ -55,10 +55,10 @@ const MapComponent = (): ReactElement => {
     map.current.on('zoom', () => {
       if (map.current) {
         const zoomLevel = map.current.getZoom();
-        //console.log('Current zoom level:', Math.round(zoomLevel * 100) / 100);
+        console.log('Current zoom level:', Math.round(zoomLevel * 100) / 100);
       }
     });
-
+    
     // Add zoom and rotation controls
     map.current.addControl(new NavigationControl(), 'top-right');
     
