@@ -48,11 +48,7 @@ const Dashboard = ({ isVisible, onToggle }: DashboardProps): ReactElement => {
           </div>
           
           {/* Scrollable Content */}
-          <div className="
-            flex-1 overflow-y-auto p-4
-            -webkit-overflow-scrolling: touch
-            overscroll-behavior-y: contain
-          ">
+          <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
               <p className="text-gray-700">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
