@@ -21,7 +21,7 @@ const MapComponent = (): ReactElement => {
     },
     satellite: {
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-      attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+      attribution: '© Esri, Maxar, Earthstar Geographics'
     }
   };
 
@@ -66,7 +66,7 @@ const MapComponent = (): ReactElement => {
     map.current.addControl(new maplibregl.ScaleControl({
       maxWidth: 100,
       unit: 'metric'
-    }), 'bottom-left');
+    }), 'bottom-left'); // Changed from 'top-right' to 'top-left'
 
     return () => map.current?.remove();
   }, []);
@@ -100,6 +100,17 @@ const MapComponent = (): ReactElement => {
 
   return (
     <>
+      <style>{`
+        .maplibregl-ctrl-scale {
+          position: absolute !important;
+          bottom: 0px !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+        }
+        .maplibregl-ctrl-bottom-left {
+          width: 100% !important;
+        }
+      `}</style>
       <div ref={mapContainer} className="map-container" />
       <button 
         onClick={toggleMapStyle}
