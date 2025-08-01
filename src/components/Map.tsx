@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactElement } from 'react';
 import maplibregl, { Map as MapLibre, NavigationControl, GeolocateControl } from 'maplibre-gl';
 import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
@@ -60,7 +60,7 @@ const tileConfigs = {
 const MapComponent = (): ReactElement => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibre | null>(null);
-  const [isSatellite, setIsSatellite] = useState(false);
+  const isSatelliteRef = useRef(false); // Use ref instead of state
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -132,30 +132,30 @@ const MapComponent = (): ReactElement => {
         this._button.setAttribute('aria-label', 'Toggle map style');
         
         this._button.addEventListener('click', () => {
-          setIsSatellite(currentState => {
-            const newState = !currentState;
-            const config = currentState ? tileConfigs.street : tileConfigs.satellite;
-            
-            // Update map source
-            if (map.current?.getLayer('osm')) map.current.removeLayer('osm');
-            if (map.current?.getSource('osm')) map.current.removeSource('osm');
-            
-            map.current?.addSource('osm', {
-              type: 'raster',
-              tiles: config.tiles,
-              tileSize: 256,
-              attribution: config.attribution
-            });
-            
-            map.current?.addLayer({
-              id: 'osm',
-              type: 'raster',
-              source: 'osm'
-            });
-            
-            this._button.innerHTML = currentState ? '🛣️' : '🗻';
-            return newState;
+          const currentState = isSatelliteRef.current;
+          const newState = !currentState;
+          const config = currentState ? tileConfigs.street : tileConfigs.satellite;
+          
+          // Update map source
+          if (map.current?.getLayer('osm')) map.current.removeLayer('osm');
+          if (map.current?.getSource('osm')) map.current.removeSource('osm');
+          
+          map.current?.addSource('osm', {
+            type: 'raster',
+            tiles: config.tiles,
+            tileSize: 256,
+            attribution: config.attribution
           });
+          
+          map.current?.addLayer({
+            id: 'osm',
+            type: 'raster',
+            source: 'osm'
+          });
+          
+          // Update ref and button
+          isSatelliteRef.current = newState;
+          this._button.innerHTML = currentState ? '🛣️' : '🗻';
         });
         
         this._container.appendChild(this._button);
