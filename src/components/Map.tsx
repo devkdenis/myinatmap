@@ -1,7 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import maplibregl, { Map as MapLibre, NavigationControl, GeolocateControl } from 'maplibre-gl';
+import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
+
+// Add geocoding API function
+const geocodingApi = {
+  forwardGeocode: async (config: any) => {
+    const features = [];
+    try {
+      const request = `https://nominatim.openstreetmap.org/search?q=${config.query}&format=geojson&polygon_geojson=1&addressdetails=1`;
+      const response = await fetch(request);
+      const geojson = await response.json();
+      
+      for (const feature of geojson.features) {
+        const center = [
+          feature.bbox[0] + (feature.bbox[2] - feature.bbox[0]) / 2,
+          feature.bbox[1] + (feature.bbox[3] - feature.bbox[1]) / 2
+        ];
+        const point = {
+          id: feature.properties.place_id || Math.random().toString(),
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: center
+          },
+          place_name: feature.properties.display_name,
+          properties: feature.properties,
+          text: feature.properties.display_name,
+          place_type: ['place'],
+          center
+        };
+        features.push(point);
+      }
+    } catch (e) {
+      console.error(`Failed to forwardGeocode with error: ${e}`);
+    }
+    
+    return {
+      type: 'FeatureCollection' as const,
+      features
+    };
+  }
+};
 
 // Main map component that handles the MapLibre instance and tile switching
 const MapComponent = (): ReactElement => {
@@ -63,6 +105,17 @@ const MapComponent = (): ReactElement => {
       positionOptions: { enableHighAccuracy: true },
       trackUserLocation: true
     }), 'top-right');
+    
+    // Add geocoder control
+    map.current.addControl(
+      new MaplibreGeocoder(geocodingApi, {
+        maplibregl: maplibregl,
+        placeholder: 'Search for places...',
+        zoom: 14
+      }),
+      'top-left'
+    );
+    
     map.current.addControl(new maplibregl.ScaleControl({
       maxWidth: 100,
       unit: 'metric'

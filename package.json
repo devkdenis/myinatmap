@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@maplibre/maplibre-gl-geocoder": "^1.9.0",
     "@tailwindcss/vite": "^4.1.11",
     "autoprefixer": "^10.4.21",
     "maplibre-gl": "^5.6.1",
