@@ -8,9 +8,15 @@ import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 // Geocoding API configuration
 const geocodingApi = {
   forwardGeocode: async (config: any) => {
+    // Add input validation
+    const sanitizedQuery = config.query.trim().slice(0, 100); // Limit length
+    if (!sanitizedQuery || sanitizedQuery.length < 2) {
+      return { type: 'FeatureCollection' as const, features: [] };
+    }
+    
     const features = [];
     try {
-      const request = `https://nominatim.openstreetmap.org/search?q=${config.query}&format=geojson&polygon_geojson=1&addressdetails=1`;
+      const request = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(sanitizedQuery)}&format=geojson&polygon_geojson=1&addressdetails=1`;
       const response = await fetch(request);
       const geojson = await response.json();
       
