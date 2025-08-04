@@ -5,7 +5,9 @@ import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 
-// Geocoding API configuration
+// ============================================================================
+// SEARCH BAR CONFIGURATION
+// ============================================================================
 const geocodingApi = {
   forwardGeocode: async (config: any) => {
     // Add input validation
@@ -47,7 +49,9 @@ const geocodingApi = {
   }
 };
 
-// Tile configurations
+// ============================================================================
+// MAP TILE CONFIGURATION
+// ============================================================================
 const tileConfigs = {
   street: {
     tiles: [
@@ -55,23 +59,28 @@ const tileConfigs = {
       'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
       'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
     ],
-    attribution: '© OpenStreetMap contributors'
+    attribution: '© OpenStreetMap' // Shortened by 13 characters (removed " contributors")
   },
   satellite: {
     tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-    attribution: '© Esri, Maxar, Earthstar Geographics'
+    attribution: '© Esri, Maxar, Earthstar' // Shortened by 12 characters (removed " Geographics")
   }
 };
 
+// ============================================================================
+// MAIN MAP COMPONENT
+// ============================================================================
 const MapComponent = (): ReactElement => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibre | null>(null);
-  const isSatelliteRef = useRef(false); // Use ref instead of state
+  const isSatelliteRef = useRef(false);
 
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    // Initialize map
+    // ========================================================================
+    // MAP INITIALIZATION
+    // ========================================================================
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: {
@@ -98,15 +107,17 @@ const MapComponent = (): ReactElement => {
       maxZoom: 18
     });
 
-    // Add controls
+    // ========================================================================
+    // SEARCH BAR - MapLibre Geocoder Control
+    // ========================================================================
     map.current.addControl(
       new MaplibreGeocoder(geocodingApi, {
         maplibregl: maplibregl,
-        placeholder: 'Search parks, cities, coordinates...',
+        placeholder: 'Search...',
         zoom: 12,
         flyTo: true,
         trackProximity: true,
-        collapsed: true,
+        collapsed: false,
         clearOnBlur: false,
         limit: 6,
         minLength: 3,
@@ -114,16 +125,54 @@ const MapComponent = (): ReactElement => {
         clearAndBlurOnEsc: true,
         showResultsWhileTyping: true,
       }),
-      'top-right'
+      'top-left'
     );
 
-    map.current.addControl(new NavigationControl(), 'top-right');
+    // ========================================================================
+    // MAP CONTROLS - Dashboard Toggle
+    // ========================================================================
+    class DashboardToggleControl {
+      _container!: HTMLDivElement;
+      _button!: HTMLButtonElement;
+
+      onAdd() {
+        this._container = document.createElement('div');
+        this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+        
+        this._button = document.createElement('button');
+        this._button.type = 'button';
+        this._button.innerHTML = '◀'; // Start with hide icon (assuming dashboard starts visible)
+        this._button.setAttribute('aria-label', 'Toggle Dashboard');
+        
+        this._button.addEventListener('click', () => {
+          // Dispatch custom event instead of calling prop function
+          const event = new CustomEvent('dashboardToggle');
+          window.dispatchEvent(event);
+        });
+        
+        this._container.appendChild(this._button);
+        return this._container;
+      }
+
+      onRemove() {
+        this._container.parentNode?.removeChild(this._container);
+      }
+    }
+
+    // Add Dashboard Toggle FIRST
+    map.current.addControl(new DashboardToggleControl(), 'top-right');
+
+    // ========================================================================
+    // MAP CONTROLS - Navigation & Location
+    // ========================================================================
     map.current.addControl(new GeolocateControl({
       positionOptions: { enableHighAccuracy: true },
       trackUserLocation: true
     }), 'top-right');
 
-    // Custom style toggle control
+    // ========================================================================
+    // MAP CONTROLS - Custom Style Toggle
+    // ========================================================================
     class StyleToggleControl {
       _container!: HTMLDivElement;
       _button!: HTMLButtonElement;
@@ -142,7 +191,6 @@ const MapComponent = (): ReactElement => {
           const newState = !currentState;
           const config = currentState ? tileConfigs.street : tileConfigs.satellite;
           
-          // Update map source
           if (map.current?.getLayer('osm')) map.current.removeLayer('osm');
           if (map.current?.getSource('osm')) map.current.removeSource('osm');
           
@@ -159,7 +207,6 @@ const MapComponent = (): ReactElement => {
             source: 'osm'
           });
           
-          // Update ref and button
           isSatelliteRef.current = newState;
           this._button.innerHTML = currentState ? '🛣️' : '🗻';
         });
@@ -178,69 +225,97 @@ const MapComponent = (): ReactElement => {
       maxWidth: 100,
       unit: 'metric'
     }), 'bottom-left');
+    map.current.addControl(new NavigationControl(), 'bottom-right');
 
-    return () => map.current?.remove();
-  }, []);
+    // ========================================================================
+    // DASHBOARD STATE LISTENER
+    // ========================================================================
+    const handleDashboardStateChange = (event: CustomEvent) => {
+      const dashboardButton = document.querySelector('.maplibregl-ctrl-top-right .maplibregl-ctrl-group:first-child button');
+      if (dashboardButton) {
+        dashboardButton.innerHTML = event.detail.isVisible ? '◀' : '▶';
+        dashboardButton.setAttribute('aria-label', event.detail.isVisible ? 'Hide Dashboard' : 'Show Dashboard');
+      }
+    };
+
+    window.addEventListener('dashboardStateChange', handleDashboardStateChange as EventListener);
+
+    return () => {
+      map.current?.remove();
+      window.removeEventListener('dashboardStateChange', handleDashboardStateChange as EventListener);
+    };
+  }, []); // Empty dependency array!
 
   return (
     <>
+      {/* ================================================================== */}
+      {/* MAP & SEARCH BAR STYLING */}
+      {/* ================================================================== */}
       <style>{`
-        .maplibregl-ctrl-scale {
-          position: absolute !important;
-          bottom: 0px !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-        }
-        .maplibregl-ctrl-bottom-left {
-          width: 100% !important;
-        }
-        
+        /* MAP CONTROLS STYLING */
         .maplibregl-ctrl-group button {
-          width: 35px !important;
-          height: 35px !important;
+          width: 36px !important;
+          height: 36px !important;
         }
         
-        /* Geocoder styling */
+        /* Z-INDEX HIERARCHY */
+        .maplibregl-ctrl-top-left {
+          z-index: 10 !important;
+        }
+        
+        .maplibregl-ctrl-top-right {
+          z-index: 9 !important;
+        }
+        
+        /* SEARCH BAR STYLING - Default for large desktop */
         .maplibregl-ctrl-geocoder {
-          font-size: 13px !important;
           box-shadow: 0 0 0 2px rgba(0,0,0,.1) !important;
-          border-radius: 4px !important;
+          min-width: 400px !important;
         }
         
-        .maplibregl-ctrl-geocoder.maplibregl-ctrl-geocoder--collapsed {
-          width: 35px !important;
-          height: 35px !important;
-          min-width: 35px !important;
-          min-height: 35px !important;
+        /* DESKTOP 700px-800px */
+        @media (min-width: 700px) and (max-width: 799px) {
+          .maplibregl-ctrl-geocoder {
+            min-width: 300px !important;
+          }
         }
         
-        .maplibregl-ctrl-geocoder--button {
-          width: 25px !important;
-          height: 25px !important;
-          min-width: 25px !important;
-          min-height: 25px !important;
-          font-size: 12px !important;
-          right: 6px !important;
-          top: 6px !important;
+        /* DESKTOP 640px-700px */
+        @media (min-width: 640px) and (max-width: 700px) {
+          .maplibregl-ctrl-geocoder {
+            min-width: 250px !important;
+          }
         }
         
-        .maplibregl-ctrl-geocoder--icon-search {
-          width: 18px !important;
-          height: 18px !important;
-          left: 8px !important;
-          top: 8px !important;
-        }
-        .maplibregl-ctrl-geocoder--icon-close {
-          margin-top: 0;
-          margin-right: 0;
+        /* ATTRIBUTION STYLING */
+        .maplibregl-ctrl-attrib.maplibregl-compact {
+          margin: 10px 15px !important;
         }
         
-        .maplibregl-ctrl-geocoder--input {
-          height: 35px !important;
-          font-size: 13px !important;
-          padding-left: 35px !important;
+        /* MOBILE ONLY: Full-width search bar */
+        @media (max-width: 639px) {
+          .maplibregl-ctrl-top-left .maplibregl-ctrl {
+            margin: 10px;
+          }
+          
+          .maplibregl-ctrl-geocoder {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important; 
+            width: auto !important;
+            min-width: unset !important;
+            max-width: unset !important;
+          }
+          
+          .maplibregl-ctrl-top-right {
+            top: 65px !important;
+          }
         }
       `}</style>
+      
+      {/* ================================================================== */}
+      {/* MAP CONTAINER */}
+      {/* ================================================================== */}
       <div ref={mapContainer} className="map-container" />
     </>
   );

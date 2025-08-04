@@ -3,48 +3,46 @@ import type { ReactElement } from 'react';
 interface DashboardProps {
   isVisible: boolean;
   onToggle: () => void;
+  isMobile: boolean;
 }
 
-const Dashboard = ({ isVisible, onToggle }: DashboardProps): ReactElement => {
+const Dashboard = ({ isVisible, onToggle, isMobile }: DashboardProps): ReactElement => {
   return (
     <>
-      {/* Toggle Button */}
-      <button
-        onClick={onToggle}
-        className="
-          absolute top-[10px] left-[10px]
-          bg-white 
-          w-[29px] h-[29px]
-          rounded 
-          shadow-sm
-          cursor-pointer
-          border border-gray-300
-          hover:bg-gray-100 
-          transition-colors
-          z-20
-          text-sm
-          font-sans
-          flex items-center justify-center
-        "
-        aria-label={isVisible ? 'Hide Dashboard' : 'Show Dashboard'}
-      >
-        {isVisible ? '◀' : '▶'}
-      </button>
-
       {/* Dashboard Panel */}
       {isVisible && (
-        <div className="
-          absolute top-0 left-0 bottom-0
-          w-80
+        <div className={`
           bg-white
           shadow-lg
-          z-10
           overflow-hidden
           flex flex-col
-        ">
+          ${isMobile 
+            ? 'fixed top-[10px] left-[10px] right-[10px] bottom-[10px] z-10 rounded-lg' 
+            : 'h-full w-full'
+          }
+        `}>
           {/* Header */}
-          <div className="p-[10px] border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 ml-12">My iNat Map</h2>
+          <div className="p-[10px] border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">
+              My iNat Map
+            </h2>
+            
+            {/* Close Button */}
+            <button
+              onClick={onToggle}
+              className="
+                w-6 h-6
+                rounded-full
+                hover:bg-gray-100
+                flex items-center justify-center
+                text-gray-500 hover:text-gray-700
+                transition-colors
+                text-sm
+              "
+              aria-label="Close Dashboard"
+            >
+              ✕
+            </button>
           </div>
           
           {/* Scrollable Content */}
