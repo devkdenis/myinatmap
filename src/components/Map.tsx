@@ -10,8 +10,12 @@ import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 // ============================================================================
 const geocodingApi = {
   forwardGeocode: async (config: any) => {
-    // Add input validation
-    const sanitizedQuery = config.query.trim().slice(0, 100); // Limit length
+    // Better input sanitization
+    const sanitizedQuery = config.query
+      .trim()
+      .replace(/[<>"'&]/g, '') // Remove potential XSS characters
+      .slice(0, 100); // Limit length
+      
     if (!sanitizedQuery || sanitizedQuery.length < 2) {
       return { type: 'FeatureCollection' as const, features: [] };
     }
@@ -19,7 +23,12 @@ const geocodingApi = {
     const features = [];
     try {
       const request = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(sanitizedQuery)}&format=geojson&polygon_geojson=1&addressdetails=1`;
-      const response = await fetch(request);
+      const response = await fetch(request, {
+        headers: {
+          'User-Agent': 'MyiNatMap/1.0'
+        }
+      });
+      
       const geojson = await response.json();
       
       for (const feature of geojson.features) {
@@ -59,11 +68,11 @@ const tileConfigs = {
       'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
       'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
     ],
-    attribution: '© OpenStreetMap' // Shortened by 13 characters (removed " contributors")
+    attribution: '© OpenStreetMap'
   },
   satellite: {
     tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-    attribution: '© Esri, Maxar, Earthstar' // Shortened by 12 characters (removed " Geographics")
+    attribution: '© Esri, Maxar, Earthstar'
   }
 };
 
@@ -110,23 +119,30 @@ const MapComponent = (): ReactElement => {
     // ========================================================================
     // SEARCH BAR - MapLibre Geocoder Control
     // ========================================================================
-    map.current.addControl(
-      new MaplibreGeocoder(geocodingApi, {
-        maplibregl: maplibregl,
-        placeholder: 'Search...',
-        zoom: 12,
-        flyTo: true,
-        trackProximity: true,
-        collapsed: false,
-        clearOnBlur: false,
-        limit: 6,
-        minLength: 3,
-        marker: true,
-        clearAndBlurOnEsc: true,
-        showResultsWhileTyping: true,
-      }),
-      'top-left'
-    );
+    const geocoder = new MaplibreGeocoder(geocodingApi, {
+      maplibregl: maplibregl,
+      placeholder: 'Search...',
+      zoom: 12,
+      flyTo: true,
+      trackProximity: true,
+      collapsed: false,
+      clearOnBlur: false,
+      limit: 6,
+      minLength: 3,
+      marker: true,
+      clearAndBlurOnEsc: true,
+      showResultsWhileTyping: true,
+    });
+
+    // Hide keyboard on mobile when result is selected
+    geocoder.on('result', () => {
+      const geocoderInput = document.querySelector('.maplibregl-ctrl-geocoder input') as HTMLInputElement;
+      if (geocoderInput) {
+        geocoderInput.blur();
+      }
+    });
+
+    map.current.addControl(geocoder, 'top-left');
 
     // ========================================================================
     // MAP CONTROLS - Dashboard Toggle
@@ -141,11 +157,10 @@ const MapComponent = (): ReactElement => {
         
         this._button = document.createElement('button');
         this._button.type = 'button';
-        this._button.innerHTML = '◀'; // Start with hide icon (assuming dashboard starts visible)
+        this._button.innerHTML = '◀';
         this._button.setAttribute('aria-label', 'Toggle Dashboard');
         
         this._button.addEventListener('click', () => {
-          // Dispatch custom event instead of calling prop function
           const event = new CustomEvent('dashboardToggle');
           window.dispatchEvent(event);
         });
