@@ -2,6 +2,8 @@
 
 Building a web app for naturalist peers to view their obscured iNaturalist observations privately and as aggregates while out in the field.
 
+**[Live Demo](https://devkdenis.github.io/myinatmap)**
+
 ## The idea
 
 - View your own obscured observations with precise locations
