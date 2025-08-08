@@ -10,7 +10,7 @@ import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 // ============================================================================
 const geocodingApi = {
   forwardGeocode: async (config: any) => {
-    // Better input sanitization
+    // Input sanitization
     const sanitizedQuery = config.query
       .trim()
       .replace(/[<>"'&]/g, '') // Remove potential XSS characters
@@ -259,7 +259,7 @@ const MapComponent = (): ReactElement => {
       map.current?.remove();
       window.removeEventListener('dashboardStateChange', handleDashboardStateChange as EventListener);
     };
-  }, []); // Empty dependency array!
+  }, []); // Empty dependency array
 
   return (
     <>

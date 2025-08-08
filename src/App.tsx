@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import MapComponent from './components/Map';
 import Dashboard from './components/Dashboard';
+import Prompt from './components/Prompt';
 import './App.css';
 
 function App(): React.ReactElement {
   const [isDashboardVisible, setIsDashboardVisible] = useState(true);
+  const [isPromptVisible, setIsPromptVisible] = useState(true); // Show by default
 
   const toggleDashboard = () => {
     setIsDashboardVisible(!isDashboardVisible);
+  };
+
+  const closePrompt = () => {
+    setIsPromptVisible(false);
   };
 
   // Listen for dashboard toggle events from map
@@ -21,7 +27,7 @@ function App(): React.ReactElement {
     return () => {
       window.removeEventListener('dashboardToggle', handleDashboardToggle);
     };
-  }, [isDashboardVisible]); // Add isDashboardVisible to dependencies
+  }, [isDashboardVisible]);
 
   // Notify map of dashboard state changes
   useEffect(() => {
@@ -59,6 +65,12 @@ function App(): React.ReactElement {
           isMobile={true}
         />
       </div>
+
+      {/* Prompt Popup */}
+      <Prompt 
+        isVisible={isPromptVisible}
+        onClose={closePrompt}
+      />
     </div>
   );
 }
